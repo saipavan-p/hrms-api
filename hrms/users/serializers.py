@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Login
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

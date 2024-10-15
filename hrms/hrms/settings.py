@@ -93,7 +93,7 @@ WSGI_APPLICATION = 'hrms.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'hrms_details',  
+        'NAME': 'hrm_details',  
         'USER': 'saipavan',  
         'PASSWORD': 'password',  
         'HOST': 'localhost',  
@@ -145,11 +145,25 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+from datetime import timedelta
 from rest_framework_simplejwt.settings import api_settings
 
+# SIMPLE_JWT = {
+#     'USER_ID_FIELD': 'userId',  # Use 'userId' instead of 'id'
+#     'USER_ID_CLAIM': 'user_id',
+# }
 SIMPLE_JWT = {
-    'USER_ID_FIELD': 'userId',  # Use 'userId' instead of 'id'
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 import os
 

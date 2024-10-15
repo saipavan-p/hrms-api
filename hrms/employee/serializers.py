@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import EmpWorkDetails, EmpSocialSecurityDetails, EmpPersonalDetails, EmpInsuranceDetails
+from .models import EmpWorkDetails, EmpSocialSecurityDetails, EmpPersonalDetails, EmpInsuranceDetails, EmpSalaryDetails
 
 class EmpSocialSecurityDetailsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,10 +16,16 @@ class EmpInsuranceDetailsSerializer(serializers.ModelSerializer):
         model = EmpInsuranceDetails
         fields = '__all__'
 
+class EmpSalaryDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmpSalaryDetails
+        fields = '__all__'
+
 class EmpWorkDetailsSerializer(serializers.ModelSerializer):
     social_security_details = serializers.PrimaryKeyRelatedField(queryset=EmpSocialSecurityDetails.objects.all(), required=False)
     personal_details = serializers.PrimaryKeyRelatedField(queryset=EmpPersonalDetails.objects.all(), required=False)
     insurance_details = serializers.PrimaryKeyRelatedField(queryset=EmpInsuranceDetails.objects.all(), required=False)
+    salary_details = serializers.PrimaryKeyRelatedField(queryset=EmpSalaryDetails.objects.all(), required=False)
 
     class Meta:
         model = EmpWorkDetails

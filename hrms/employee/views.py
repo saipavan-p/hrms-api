@@ -92,12 +92,13 @@ from rest_framework.response import Response
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
-from .models import EmpWorkDetails, EmpSocialSecurityDetails, EmpPersonalDetails, EmpInsuranceDetails
+from .models import EmpWorkDetails, EmpSocialSecurityDetails, EmpPersonalDetails, EmpInsuranceDetails, EmpSalaryDetails
 from .serializers import (
     EmpWorkDetailsSerializer, 
     EmpSocialSecurityDetailsSerializer, 
     EmpPersonalDetailsSerializer, 
-    EmpInsuranceDetailsSerializer
+    EmpInsuranceDetailsSerializer,
+    EmpSalaryDetailsSerializer
 )
 
 class CombinedDetailsViewSet(viewsets.ViewSet):
@@ -111,6 +112,8 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         print("Personal data:",personal_data)
         insurance_data = request.data.get('insurance_details')
         print("Insurance data:",insurance_data)
+        salary_data = request.data.get('salary_details')
+        print("Salary data:",salary_data)
 
         # # Initialize serializers
         # work_serializer = EmpWorkDetailsSerializer(data=work_data)
@@ -126,7 +129,8 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
                 "work_details_errors": work_serializer.errors,
                 "social_security_details_errors": {},
                 "personal_details_errors": {},
-                "insurance_details_errors": {}
+                "insurance_details_errors": {},
+                "salary_details_errors": {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
         work_instance = work_serializer.save()
@@ -157,6 +161,14 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
             insurance_instance = insurance_serializer.save()
             print(insurance_instance)
 
+            # Step 5: Validate and save EmpSalaryDetailsSerializer
+            salary_data['wdId'] = work_instance.pk
+            salary_serializer = EmpSalaryDetailsSerializer(data=salary_data)
+            if not salary_serializer.is_valid():
+                raise ValueError("Insurance details validation failed")
+            salary_instance = salary_serializer.save()
+            print(salary_instance)
+
         except ValueError as e:
             # If any validation fails, roll back the transaction
             transaction.set_rollback(True)
@@ -165,7 +177,8 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
                 "work_details_errors": {},
                 "social_security_details_errors": social_security_serializer.errors if 'social_security_serializer' in locals() else {},
                 "personal_details_errors": personal_serializer.errors if 'personal_serializer' in locals() else {},
-                "insurance_details_errors": insurance_serializer.errors if 'insurance_serializer' in locals() else {}
+                "insurance_details_errors": insurance_serializer.errors if 'insurance_serializer' in locals() else {},
+                "salary_details_errors": salary_serializer.errors if 'salary_serializer' in locals() else {}
             }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
@@ -178,17 +191,20 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         social_security_instance = get_object_or_404(EmpSocialSecurityDetails, wdId=work_instance)
         personal_instance = get_object_or_404(EmpPersonalDetails, wdId=work_instance)
         insurance_instance = get_object_or_404(EmpInsuranceDetails, wdId=work_instance)
+        salary_instance    = get_object_or_404(EmpSalaryDetails, wdId=work_instance)
 
         work_serializer = EmpWorkDetailsSerializer(work_instance)
         social_security_serializer = EmpSocialSecurityDetailsSerializer(social_security_instance)
         personal_serializer = EmpPersonalDetailsSerializer(personal_instance)
         insurance_serializer = EmpInsuranceDetailsSerializer(insurance_instance)
+        salary_serializer    = EmpSalaryDetailsSerializer(salary_instance)
 
         response_data = {
             "work_details": work_serializer.data,
             "social_security_details": social_security_serializer.data,
             "personal_details": personal_serializer.data,
-            "insurance_details": insurance_serializer.data
+            "insurance_details": insurance_serializer.data,
+            "salary_details": salary_serializer.data
         }
         return Response(response_data)
 
@@ -202,6 +218,7 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         personal_data = request.data.get('personal_details', {})
         social_security_data = request.data.get('social_security_details', {})
         insurance_data = request.data.get('insurance_details', {})
+        salary_data = request.data.get('salary_details', {})
 
         # Validate and update work details
         work_serializer = EmpWorkDetailsSerializer(work_instance, data=company_data, partial=True)
@@ -246,12 +263,24 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
 
         insurance_instance = insurance_serializer.save()
 
+        # Validate and update salary details
+        salary_instance = get_object_or_404(EmpSalaryDetails, wdId=work_instance)
+        salary_serializer = EmpSalaryDetailsSerializer(salary_instance, data=salary_data, partial=True)
+        if not salary_serializer.is_valid():
+            return Response({
+                "message": "Validation errors occurred.",
+                "salary_details_errors": salary_serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        salary_instance = salary_serializer.save()
+
         # Return updated data
         return Response({
             "work_details": work_serializer.data,
             "social_security_details": social_security_serializer.data,
             "personal_details": personal_serializer.data,
-            "insurance_details": insurance_serializer.data
+            "insurance_details": insurance_serializer.data,
+            "salary_details": salary_serializer.data
         }, status=status.HTTP_200_OK)
 
 
@@ -269,6 +298,7 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         social_security_instance = EmpSocialSecurityDetails.objects.filter(wdId=work_instance).first()
         personal_instance = EmpPersonalDetails.objects.filter(wdId=work_instance).first()
         insurance_instance = EmpInsuranceDetails.objects.filter(wdId=work_instance).first()
+        salary_instance = EmpSalaryDetails.objects.filter(wdId=work_instance).first()
 
         if social_security_instance:
             social_security_instance.delete()
@@ -276,6 +306,8 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
             personal_instance.delete()
         if insurance_instance:
             insurance_instance.delete()
+        if salary_instance:
+            salary_instance.delete()
     
         work_instance.delete()
 
@@ -292,6 +324,7 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         social_security_details_list = []
         personal_details_list = []
         insurance_details_list = []
+        salary_details_list = []
 
         for work_instance in work_instances:
             # Serialize and add work details
@@ -302,11 +335,14 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
             social_security_instance = EmpSocialSecurityDetails.objects.filter(wdId=work_instance).first()
             personal_instance = EmpPersonalDetails.objects.filter(wdId=work_instance).first()
             insurance_instance = EmpInsuranceDetails.objects.filter(wdId=work_instance).first()
+            salary_instance    = EmpSalaryDetails.objects.filter(wdId=work_instance).first()
 
             # Serialize and add related details if they exist
             social_security_data = {}
             personal_data = {}
             insurance_data = {}
+            salary_data = {}
+
 
             if social_security_instance:
                 social_security_serializer = EmpSocialSecurityDetailsSerializer(social_security_instance)
@@ -319,13 +355,18 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
             if insurance_instance:
                 insurance_serializer = EmpInsuranceDetailsSerializer(insurance_instance)
                 insurance_data = insurance_serializer.data
+            
+            if salary_instance:
+                salary_serializer = EmpSalaryDetailsSerializer(salary_instance)
+                salary_data = salary_serializer.data
 
             # Combine all details into one dictionary
             combined_data = {
                 "work_details": work_data,
                 "social_security_details": social_security_data,
                 "personal_details": personal_data,
-                "insurance_details": insurance_data
+                "insurance_details": insurance_data,
+                "salary_details": salary_data
             }
 
             # Add the combined data to the lists
