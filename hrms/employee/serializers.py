@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import EmpWorkDetails, EmpSocialSecurityDetails, EmpPersonalDetails, EmpInsuranceDetails, EmpSalaryDetails
+from company.models import CompanyDetails
 
 class EmpSocialSecurityDetailsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,11 +22,20 @@ class EmpSalaryDetailsSerializer(serializers.ModelSerializer):
         model = EmpSalaryDetails
         fields = '__all__'
 
+    def create(self, validated_data):
+        reimbursements = validated_data.pop('reimbursements', {})
+        salary_details = EmpSalaryDetails.objects.create(**validated_data)
+        salary_details.reimbursements = reimbursements
+        salary_details.save()
+        return salary_details
+
 class EmpWorkDetailsSerializer(serializers.ModelSerializer):
+
     social_security_details = serializers.PrimaryKeyRelatedField(queryset=EmpSocialSecurityDetails.objects.all(), required=False)
     personal_details = serializers.PrimaryKeyRelatedField(queryset=EmpPersonalDetails.objects.all(), required=False)
     insurance_details = serializers.PrimaryKeyRelatedField(queryset=EmpInsuranceDetails.objects.all(), required=False)
     salary_details = serializers.PrimaryKeyRelatedField(queryset=EmpSalaryDetails.objects.all(), required=False)
+    company = serializers.PrimaryKeyRelatedField(read_only=True)  # Accepts company_id
 
     class Meta:
         model = EmpWorkDetails

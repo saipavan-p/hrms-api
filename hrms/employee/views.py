@@ -91,6 +91,11 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from company.models import CompanyDetails
+from payrole.models import EmployeeCompensation
+
 
 from .models import EmpWorkDetails, EmpSocialSecurityDetails, EmpPersonalDetails, EmpInsuranceDetails, EmpSalaryDetails
 from .serializers import (
@@ -104,6 +109,8 @@ from .serializers import (
 class CombinedDetailsViewSet(viewsets.ViewSet):
     @transaction.atomic
     def create(self, request):
+        self.check_permissions(request)  # Check permissions before proceeding
+        
         work_data = request.data.get('work_details')
         print("Work Data:",work_data)
         social_security_data = request.data.get('social_security_details')
@@ -115,6 +122,18 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         salary_data = request.data.get('salary_details')
         print("Salary data:",salary_data)
 
+        # Check if company_id is provided
+        company_id = request.data.get('company')  # This is passed from frontend (localStorage)
+        if not company_id:
+            return Response({"error": "Company ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Fetch the company instance using the company_id
+            company = CompanyDetails.objects.get(companyId=company_id)
+        except CompanyDetails.DoesNotExist:
+            return Response({"error": "Company not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        
         # # Initialize serializers
         # work_serializer = EmpWorkDetailsSerializer(data=work_data)
         # social_security_serializer = EmpSocialSecurityDetailsSerializer()
@@ -133,7 +152,7 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
                 "salary_details_errors": {}
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        work_instance = work_serializer.save()
+        work_instance = work_serializer.save(company=company)
         print("work instance",work_instance)
 
         try:
@@ -169,6 +188,13 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
             salary_instance = salary_serializer.save()
             print(salary_instance)
 
+            # Here, handle reimbursements if they are included in the salary_data
+            reimbursements = salary_data.get('reimbursements', {})
+            if reimbursements:
+                # Assuming salary_instance has a field for reimbursements
+                salary_instance.reimbursements = reimbursements  # Ensure this field exists
+                salary_instance.save()
+
         except ValueError as e:
             # If any validation fails, roll back the transaction
             transaction.set_rollback(True)
@@ -184,7 +210,7 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         return Response({
             "message": "Successfully submitted all details."
         }, status=status.HTTP_201_CREATED)
-
+  
 
     def retrieve(self, request, pk=None):
         work_instance = get_object_or_404(EmpWorkDetails, pk=pk)
@@ -210,6 +236,7 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
 
     @transaction.atomic
     def partial_update(self, request, pk=None):
+        self.check_permissions(request)
         # Use correct model name
         work_instance = get_object_or_404(EmpWorkDetails, pk=pk)
 
@@ -286,6 +313,7 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
 
     @transaction.atomic
     def destroy(self, request, pk=None):
+        self.check_permissions(request)
         # Check if the work details exist
         work_instance = EmpWorkDetails.objects.filter(pk=pk).first()
 
@@ -315,16 +343,85 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
             "message": "Successfully deleted."
         }, status=status.HTTP_200_OK)
 
+    # def list(self, request):
+    #     self.check_permissions(request)
+    #     # Retrieve all employee work details
+    #     work_instances = EmpWorkDetails.objects.all()
+
+    #     # Initialize lists for serialized data
+    #     work_details_list = []
+    #     social_security_details_list = []
+    #     personal_details_list = []
+    #     insurance_details_list = []
+    #     salary_details_list = []
+
+    #     for work_instance in work_instances:
+    #         # Serialize and add work details
+    #         work_serializer = EmpWorkDetailsSerializer(work_instance)
+    #         work_data = work_serializer.data
+
+    #         # Retrieve related data
+    #         social_security_instance = EmpSocialSecurityDetails.objects.filter(wdId=work_instance).first()
+    #         personal_instance = EmpPersonalDetails.objects.filter(wdId=work_instance).first()
+    #         insurance_instance = EmpInsuranceDetails.objects.filter(wdId=work_instance).first()
+    #         salary_instance    = EmpSalaryDetails.objects.filter(wdId=work_instance).first()
+
+    #         # Serialize and add related details if they exist
+    #         social_security_data = {}
+    #         personal_data = {}
+    #         insurance_data = {}
+    #         salary_data = {}
+
+
+    #         if social_security_instance:
+    #             social_security_serializer = EmpSocialSecurityDetailsSerializer(social_security_instance)
+    #             social_security_data = social_security_serializer.data
+
+    #         if personal_instance:
+    #             personal_serializer = EmpPersonalDetailsSerializer(personal_instance)
+    #             personal_data = personal_serializer.data
+
+    #         if insurance_instance:
+    #             insurance_serializer = EmpInsuranceDetailsSerializer(insurance_instance)
+    #             insurance_data = insurance_serializer.data
+            
+    #         if salary_instance:
+    #             salary_serializer = EmpSalaryDetailsSerializer(salary_instance)
+    #             salary_data = salary_serializer.data
+
+    #         # Combine all details into one dictionary
+    #         combined_data = {
+    #             "work_details": work_data,
+    #             "social_security_details": social_security_data,
+    #             "personal_details": personal_data,
+    #             "insurance_details": insurance_data,
+    #             "salary_details": salary_data
+    #         }
+
+    #         # Add the combined data to the lists
+    #         work_details_list.append(combined_data)
+
+    #     response_data = {
+    #         "employees": work_details_list
+    #     }
+        
+    #     return Response(response_data, status=status.HTTP_200_OK)
+
     def list(self, request):
-        # Retrieve all employee work details
-        work_instances = EmpWorkDetails.objects.all()
+        self.check_permissions(request)
+
+        # Get the company_id from the query parameters
+        company_id = request.query_params.get('company_id', None)
+
+        # Filter EmpWorkDetails by company_id
+        if company_id:
+            work_instances = EmpWorkDetails.objects.filter(company_id=company_id)
+        else:
+            # If company_id is not provided, return all work details
+            work_instances = EmpWorkDetails.objects.all()
 
         # Initialize lists for serialized data
         work_details_list = []
-        social_security_details_list = []
-        personal_details_list = []
-        insurance_details_list = []
-        salary_details_list = []
 
         for work_instance in work_instances:
             # Serialize and add work details
@@ -335,30 +432,13 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
             social_security_instance = EmpSocialSecurityDetails.objects.filter(wdId=work_instance).first()
             personal_instance = EmpPersonalDetails.objects.filter(wdId=work_instance).first()
             insurance_instance = EmpInsuranceDetails.objects.filter(wdId=work_instance).first()
-            salary_instance    = EmpSalaryDetails.objects.filter(wdId=work_instance).first()
+            salary_instance = EmpSalaryDetails.objects.filter(wdId=work_instance).first()
 
             # Serialize and add related details if they exist
-            social_security_data = {}
-            personal_data = {}
-            insurance_data = {}
-            salary_data = {}
-
-
-            if social_security_instance:
-                social_security_serializer = EmpSocialSecurityDetailsSerializer(social_security_instance)
-                social_security_data = social_security_serializer.data
-
-            if personal_instance:
-                personal_serializer = EmpPersonalDetailsSerializer(personal_instance)
-                personal_data = personal_serializer.data
-
-            if insurance_instance:
-                insurance_serializer = EmpInsuranceDetailsSerializer(insurance_instance)
-                insurance_data = insurance_serializer.data
-            
-            if salary_instance:
-                salary_serializer = EmpSalaryDetailsSerializer(salary_instance)
-                salary_data = salary_serializer.data
+            social_security_data = social_security_instance and EmpSocialSecurityDetailsSerializer(social_security_instance).data or {}
+            personal_data = personal_instance and EmpPersonalDetailsSerializer(personal_instance).data or {}
+            insurance_data = insurance_instance and EmpInsuranceDetailsSerializer(insurance_instance).data or {}
+            salary_data = salary_instance and EmpSalaryDetailsSerializer(salary_instance).data or {}
 
             # Combine all details into one dictionary
             combined_data = {
@@ -369,11 +449,35 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
                 "salary_details": salary_data
             }
 
-            # Add the combined data to the lists
+            # Add the combined data to the list
             work_details_list.append(combined_data)
 
+        # Prepare the final response data
         response_data = {
             "employees": work_details_list
         }
         
         return Response(response_data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='work-details')
+    def list_work_details(self, request):
+        """
+        Custom action to retrieve only EmpWorkDetails data.
+        """
+        # Get the company_id from the query parameters
+        company_id = request.query_params.get('company_id', None)
+
+        # Filter EmpWorkDetails by company_id
+        if company_id:
+            work_instances = EmpWorkDetails.objects.filter(company_id=company_id)
+        else:
+            # If company_id is not provided, return all work details
+            work_instances = EmpWorkDetails.objects.all()
+
+        # Serialize the work details
+        work_serializer = EmpWorkDetailsSerializer(work_instances, many=True)
+
+        # Return only work details in response  
+        return Response({
+            "work_details": work_serializer.data
+        }, status=status.HTTP_200_OK)

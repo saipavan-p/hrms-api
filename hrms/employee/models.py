@@ -7,7 +7,7 @@ class EmpWorkDetails(models.Model):
     wdId = models.AutoField(primary_key=True)  # Primary key for the work details
 
     # Foreign Key to CompanyDetails
-    # company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, related_name="employees")
+    company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, related_name="employees",null=True, blank=True)
 
     # # Foreign Key to EmployeeCompensation (Compensation structure that applies to this employee)
     # compensation = models.ForeignKey(EmployeeCompensation, on_delete=models.CASCADE, related_name="employees")
@@ -16,7 +16,7 @@ class EmpWorkDetails(models.Model):
     empId = models.CharField(max_length=255, unique=True)  # Unique employee ID
     employmentStatus = models.CharField(max_length=100)  # Employment status (e.g., Active, Terminated)
     companyEmailId = models.EmailField()  # Employee's official email ID
-    dateOfJoining = models.DateField()  # Date of joining
+    dateOfJoining = models.DateField(null=True, blank=True)  # Date of joining
     dateOfRelieving = models.DateField(null=True, blank=True)  # Date of relieving (if applicable)
 
     firstName = models.CharField(max_length=100)  # First name of employee
@@ -29,7 +29,6 @@ class EmpWorkDetails(models.Model):
     reasonForLeaving = models.TextField(null=True, blank=True)  # Reason for leaving (if applicable)
 
     monthYearOfTermination = models.CharField(max_length=100, null=True, blank=True)
-    # Experience and Termination details
     totalExpInThisCompany = models.CharField(max_length=100, null=True, blank=True)
     totalExperience = models.CharField(max_length=100, null=True, blank=True)
     totalExpBeforeJoining = models.CharField(max_length=100, null=True, blank=True)
@@ -97,6 +96,7 @@ class EmpInsuranceDetails(models.Model):
     def __str__(self):
         return f"Insurance Details for {self.wdId.empId}"
 
+# Employee Salary Details
 class EmpSalaryDetails(models.Model):
     sdId = models.AutoField(primary_key=True)  # Primary key for the salary details
 
@@ -106,6 +106,7 @@ class EmpSalaryDetails(models.Model):
     # Salary components, reflecting the company's compensation structure
     CTCpayAMT = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Cost to Company (CTC)
     BasicpayAMT = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Basic pay
+    DApayAMT = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     HRApayAMT = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # House Rent Allowance (HRA)
     AdvancesAMT = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Advances, if any
     VariableAMT = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Variable pay
@@ -117,6 +118,13 @@ class EmpSalaryDetails(models.Model):
     PFAMT = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Provident Fund Amount (PF)
     ESIAMT = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Employee State Insurance (ESI)
     DLoansAMT = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Deducted Loans, if any
+    VPFAMT = models.DecimalField(max_digits=10, decimal_places=2, default=0) # Voluntary PF 
+    # Dynamic reimbursements stored as JSON
+    reimbursements = models.JSONField(default=dict)  # Store key-value pairs for reimbursements
+    pf_type = models.CharField(max_length=10, null=True, blank=True, choices=[
+        ("!=15k", "No Limit for PF Deduction"),
+        ("15k", "Wage limit 15k")
+    ])
 
     def __str__(self):
         return f"Salary Details for Employee: {self.wdId.empId}"

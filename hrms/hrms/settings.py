@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'company',
     'employee',
     'payrole',
+    'timesheet'
 ]
 
 MIDDLEWARE = [
@@ -93,7 +94,7 @@ WSGI_APPLICATION = 'hrms.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'hrm_details',  
+        'NAME': 'hrms_data',  
         'USER': 'saipavan',  
         'PASSWORD': 'password',  
         'HOST': 'localhost',  
@@ -121,6 +122,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# # REST_FRAMEWORK = {
+# #     'DEFAULT_AUTHENTICATION_CLASSES': [
+# #         'rest_framework.authentication.TokenAuthentication',
+# #         'rest_framework.authentication.SessionAuthentication',
+# #         'rest_framework.authentication.BasicAuthentication',
+# #     ],
+# #     'DEFAULT_PERMISSION_CLASSES': [
+# #         'rest_framework.permissions.IsAuthenticated',
+# #     ],
+# }
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
