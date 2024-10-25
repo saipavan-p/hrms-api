@@ -12,6 +12,8 @@ class TimeSheet(models.Model):
     no_of_days = models.IntegerField()
     attendance = models.IntegerField()
     lop_days = models.IntegerField()
+    OT = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
+
