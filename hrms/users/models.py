@@ -76,7 +76,7 @@ class Login(AbstractBaseUser):
     ]
 
     id = models.AutoField(primary_key=True)
-    userName = models.CharField(max_length=150)
+    userName = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128)
     phoneNum = models.CharField(max_length=15)

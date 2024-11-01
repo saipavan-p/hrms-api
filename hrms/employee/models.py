@@ -1,6 +1,8 @@
 from django.db import models
 from company.models import CompanyDetails
 from payrole.models import EmployeeCompensation
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
 
 # Employee Work Details
 class EmpWorkDetails(models.Model):
@@ -15,7 +17,7 @@ class EmpWorkDetails(models.Model):
     # Employee-specific fields
     empId = models.CharField(max_length=255, unique=True)  # Unique employee ID
     employmentStatus = models.CharField(max_length=100)  # Employment status (e.g., Active, Terminated)
-    companyEmailId = models.EmailField()  # Employee's official email ID
+    companyEmailId = models.EmailField(null=True, blank=True)  # Employee's official email ID
     dateOfJoining = models.DateField(null=True, blank=True)  # Date of joining
     dateOfRelieving = models.DateField(null=True, blank=True)  # Date of relieving (if applicable)
 
@@ -36,10 +38,38 @@ class EmpWorkDetails(models.Model):
     previousDateOfJoining = models.DateField(null=True, blank=True)
     previousEmployer = models.CharField(max_length=100, null=True, blank=True)
 
-    def __str__(self):
-        return f"Work details for {self.firstName} {self.lastName} (Employee ID: {self.empId})"
+    def save(self, *args, **kwargs):
+        if self.dateOfJoining:
+            today = timezone.now().date() 
+            print("TODAY:",today)
+            experience = relativedelta(today, self.dateOfJoining)
+            print("Exp:",experience)
 
+            years_in_company = experience.years
+            print("YR:",years_in_company)
+            months_in_company = experience.months
+            print("MON:",months_in_company)
+            self.totalExpInThisCompany = f"{years_in_company} yr {months_in_company} mon"
 
+            if self.totalExpBeforeJoining:
+                try:
+                    parts = self.totalExpBeforeJoining.split(' ')
+                    total_exp_years = int(parts[0])
+                    total_exp_months = int(parts[2])
+                except (ValueError, IndexError):
+                    total_exp_years, total_exp_months = 0, 0
+            else:
+                total_exp_years, total_exp_months = 0, 0
+
+            totalExperience = relativedelta(years=total_exp_years, months=total_exp_months)
+            totalExperience += experience
+
+            years_total_exp = totalExperience.years
+            months_total_exp = totalExperience.months
+            self.totalExperience = f"{years_total_exp} yr {months_total_exp} mon"
+
+        super(EmpWorkDetails, self).save(*args, **kwargs)
+    
 # Employee Social Security Details
 class EmpSocialSecurityDetails(models.Model):
     ssdId = models.AutoField(primary_key=True)
@@ -59,7 +89,7 @@ class EmpSocialSecurityDetails(models.Model):
 class EmpPersonalDetails(models.Model):
     pdId = models.AutoField(primary_key=True)
     wdId = models.ForeignKey(EmpWorkDetails, on_delete=models.CASCADE)
-    personalEmailId = models.EmailField()
+    personalEmailId = models.EmailField(null=True, blank=True)
     dob = models.DateField()
     gender = models.CharField(max_length=50)
     educationalQualification = models.CharField(max_length=100)
@@ -73,6 +103,8 @@ class EmpPersonalDetails(models.Model):
     relationshipName = models.CharField(max_length=100)
     bloodGroup = models.CharField(max_length=10)
     shirtSize = models.CharField(max_length=10, null=True, blank=True)
+    location = models.CharField(max_length=100, null=True, blank=True)
+
 
     def __str__(self):
         return f"Personal Details for {self.wdId.empId}"

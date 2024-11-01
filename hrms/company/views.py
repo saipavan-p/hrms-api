@@ -118,9 +118,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import CompanyDetails  # No need to import Login here
-from .serializers import CompanyDetailsSerializer
+from .serializers import CompanyDetailsSerializer, CompanyDetailsGetSerializer
 from users.models import Login  # Assuming your user model is called Login
-
 
 class CompanyDetailsView(APIView):
     def post(self, request, *args, **kwargs):
@@ -141,6 +140,7 @@ class CompanyDetailsView(APIView):
         
         # If validation fails, return bad request
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CompanySetupView(APIView):
     def post(self, request):
@@ -181,3 +181,35 @@ class CompanySetupView(APIView):
         return Response({"companyId": company.companyId, "message": "Company setup complete and admin details saved"}, status=status.HTTP_201_CREATED)
 
 
+class CompanyDetailRetrieveView(APIView):
+    def get(self, request, companyId):
+        try:
+            # Fetch the company using companyId
+            company = CompanyDetails.objects.get(companyId=companyId)
+            serializer = CompanyDetailsGetSerializer(company)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except CompanyDetails.DoesNotExist:
+            return Response({"error": "Company not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UpdateCompanyDetailsView(APIView):
+    # permission_classes = [IsAuthenticated]  # Ensure user is authenticated
+
+    def put(self, request, companyId):
+        try:
+            company = CompanyDetails.objects.get(companyId=companyId)
+            serializer = CompanyDetailsSerializer(company, data=request.data, partial=True)  # Use partial=True for partial updates
+
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+                # return Response({"message": "Company details updated successfully", "companyId": companyId}, status=status.HTTP_200_OK)
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except CompanyDetails.DoesNotExist:
+            return Response({"error": "Company not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
