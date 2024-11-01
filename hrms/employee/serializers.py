@@ -48,3 +48,17 @@ class EmpWorkDetailsSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         # Use default ModelSerializer update behavior for simplicity
         return super().update(instance, validated_data)
+    
+
+class CustomEmpSalaryDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmpSalaryDetails
+        fields = ['wdId', 'CTCpayAMT', 'DLoansAMT', 'VPFAMT']
+
+
+class CustomEmpWorkDetailsSerializer(serializers.ModelSerializer):
+    salary_details = CustomEmpSalaryDetailsSerializer(source='empsalarydetails_set', many=True, read_only=True)
+
+    class Meta:
+        model = EmpWorkDetails
+        fields = ['wdId', 'company', 'empId', 'firstName', 'lastName', 'roleType', 'salary_details']

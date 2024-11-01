@@ -4,7 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import JsonResponse
-from .models import TimeSheet, EmpWorkDetails, CompanyDetails
+from .models import TimeSheet, EmpWorkDetails, CompanyDetails, PayCalculation
+from .serializers import PayCalculationSerializer
 from .serializers import TimesheetSerializer
 from rest_framework import viewsets
 
@@ -88,7 +89,7 @@ class TimesheetViewSet(viewsets.ViewSet):
             )
 
         serializer = TimesheetSerializer(timesheets, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"Attendance_data":serializer.data}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def upload_timesheet(request):
@@ -115,7 +116,9 @@ def upload_timesheet(request):
                     no_of_days=entry['noOfDays'],
                     attendance=entry['attendance'],
                     lop_days=entry['lopDays'],
-                    OT=entry['OT']
+                    OT=entry['OT'],
+                    allowance=entry['allowance'],
+                    deductions=entry['deductions']
                 )
             else:
                 # Handle cases where empId is missing, you can skip or log it
@@ -132,4 +135,17 @@ def upload_timesheet(request):
 # class TimesheetViewSet(viewsets.ModelViewSet):
 #     queryset = TimeSheet.objects.all()
 #     serializer_class = TimesheetSerializer
+
+
+
+
+class SavePayData(APIView):
+    def post(self, request):
+        serializer = PayCalculationSerializer(data=request.data)  # Pass data to the serializer
+
+        if serializer.is_valid():
+            serializer.save()  # Save the data if valid
+            return Response({"message": "Data saved successfully"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

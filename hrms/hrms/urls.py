@@ -38,7 +38,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from employee.views import CombinedDetailsViewSet
 from payrole.views import EmployeeCompensationViewSet,PayrollSettingsView
-from timesheet.views import upload_timesheet
+from timesheet.views import upload_timesheet, TimesheetViewSet
 
 
 # Create a router and register the employee viewset
@@ -69,5 +69,9 @@ urlpatterns = [
     path('api/', include(router.urls)),  # <== This includes the 'payroledetails' and 'employee' routes under /api/
     path('timesheet/upload/', upload_timesheet, name='upload_timesheet'),
     path('payroll-settings/<int:company_id>/', PayrollSettingsView.as_view(), name='payroll-settings'),
+    # path('timesheet-view/<int:company_id>/', TimesheetViewSet.as_view({'get': 'list'}), name='TimesheetViewSet'),
+    # path('timesheet-view/<int:company_id>/', TimesheetViewSet.as_view({'get': 'list'}), name='timesheet-view'),
+    path('timesheet-view/<int:company_id>/', TimesheetViewSet.as_view({'get': 'list'}), name='timesheet-view'),
+    path('api/', include('timesheet.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

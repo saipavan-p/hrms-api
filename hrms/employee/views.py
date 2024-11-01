@@ -103,7 +103,8 @@ from .serializers import (
     EmpSocialSecurityDetailsSerializer, 
     EmpPersonalDetailsSerializer, 
     EmpInsuranceDetailsSerializer,
-    EmpSalaryDetailsSerializer
+    EmpSalaryDetailsSerializer,
+    CustomEmpWorkDetailsSerializer
 )
 
 class CombinedDetailsViewSet(viewsets.ViewSet):
@@ -460,24 +461,16 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], url_path='work-details')
-    def list_work_details(self, request):
-        """
-        Custom action to retrieve only EmpWorkDetails data.
-        """
-        # Get the company_id from the query parameters
+    def list_custom_work_details(self, request):
         company_id = request.query_params.get('company_id', None)
 
-        # Filter EmpWorkDetails by company_id
+        # Use select_related to optimize queries
         if company_id:
             work_instances = EmpWorkDetails.objects.filter(company_id=company_id)
         else:
             # If company_id is not provided, return all work details
             work_instances = EmpWorkDetails.objects.all()
 
-        # Serialize the work details
-        work_serializer = EmpWorkDetailsSerializer(work_instances, many=True)
-
-        # Return only work details in response  
-        return Response({
-            "work_details": work_serializer.data
-        }, status=status.HTTP_200_OK)
+        # Serialize the data
+        serializer = CustomEmpWorkDetailsSerializer(work_instances, many=True)
+        return Response({"custom_work_details": serializer.data}, status=status.HTTP_200_OK)

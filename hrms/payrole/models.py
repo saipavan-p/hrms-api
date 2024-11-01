@@ -67,7 +67,9 @@ class EmployeeCompensation(models.Model):
     company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, related_name="compensations")
 
     basic_percentage = models.FloatField() 
-    hra_percentage = models.FloatField()    
+    hra_enabled = models.BooleanField(default=False)
+    hra_percentage = models.FloatField(null=True, blank=True)    
+    da_enabled = models.BooleanField(default=False)
     da_percentage = models.FloatField(null=True, blank=True)
     # Dynamic reimbursements stored as JSON
     reimbursements = models.JSONField(default=dict)  # Store key-value pairs for reimbursements
