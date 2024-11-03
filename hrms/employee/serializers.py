@@ -53,7 +53,7 @@ class EmpWorkDetailsSerializer(serializers.ModelSerializer):
 class CustomEmpSalaryDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmpSalaryDetails
-        fields = ['wdId', 'CTCpayAMT', 'DLoansAMT', 'VPFAMT']
+        fields = ['wdId', 'CTCpayAMT', 'DLoansAMT', 'VPFAMT', 'reimbursements']
 
 
 class CustomEmpWorkDetailsSerializer(serializers.ModelSerializer):

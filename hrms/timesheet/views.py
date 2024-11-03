@@ -7,7 +7,9 @@ from django.http import JsonResponse
 from .models import TimeSheet, EmpWorkDetails, CompanyDetails, PayCalculation
 from .serializers import PayCalculationSerializer
 from .serializers import TimesheetSerializer
-from rest_framework import viewsets
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 # class TimesheetViewSet(viewsets.ModelViewSet):
 #     serializer_class = TimesheetSerializer
@@ -74,22 +76,42 @@ from rest_framework import viewsets
         
 #         return TimeSheet.objects.none()  # Return empty if no company_id provided
 
-class TimesheetViewSet(viewsets.ViewSet):
-    def list(self, request, company_id):
-        print(f"Received request to fetch timesheets for company ID: {company_id}")
+# class TimesheetViewSet(viewsets.ViewSet):
+#     def list(self, request, company_id, month):
+#         # print(f"Received request to fetch timesheets for company ID: {company_id}")
 
-        # Filter timesheets by company ID
-        timesheets = TimeSheet.objects.filter(company_id=company_id)
+#         # Filter timesheets by company ID
+#         # timesheets = TimeSheet.objects.filter(company_id=company_id)
+#         timesheets = TimeSheet.objects.filter(company_id=company_id, month=month)  # Filter by company ID and month
+#         print(f"Filtered Timesheets Queryset: {timesheets}")
+
+#         if not timesheets:
+#             return Response(
+#                 {"message": f"No timesheets found for company ID: {company_id}"},
+#                 status=status.HTTP_404_NOT_FOUND,
+#             )
+
+#         serializer = TimesheetSerializer(timesheets, many=True)
+#         return Response({"Attendance_data":serializer.data}, status=status.HTTP_200_OK)
+    
+
+class TimesheetViewSet(viewsets.ViewSet):
+    def list(self, request, company_id, month):
+        print(f"Received request to fetch timesheets for company ID: {company_id} and month: {month}")
+
+        # Filter timesheets by company ID and month
+        timesheets = TimeSheet.objects.filter(company_id=company_id, month=month)
         print(f"Filtered Timesheets Queryset: {timesheets}")
 
         if not timesheets:
             return Response(
-                {"message": f"No timesheets found for company ID: {company_id}"},
+                {"message": f"No timesheets found for company ID: {company_id} and month: {month}"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         serializer = TimesheetSerializer(timesheets, many=True)
-        return Response({"Attendance_data":serializer.data}, status=status.HTTP_200_OK)
+        return Response({"Attendance_data": serializer.data}, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 def upload_timesheet(request):
@@ -149,3 +171,27 @@ class SavePayData(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+from .models import PayCalculation
+from .serializers import PayCalculationSerializer
+
+class PayCalculationViewSet(viewsets.ViewSet):
+    @action(detail=False, methods=['get'])
+    def unique_months(self, request):
+        unique_months = PayCalculation.objects.values_list('month', flat=True).distinct()
+        return Response(list(unique_months), status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
+    def by_month(self, request):
+        month = request.query_params.get('month')
+        company_id = request.query_params.get('company_id')
+        
+        if month and company_id:
+            queryset = PayCalculation.objects.filter(month=month, company_id=company_id)
+            serializer = PayCalculationSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {"error": "Month and company_id parameters are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
