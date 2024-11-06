@@ -24,8 +24,8 @@ class EmpWorkDetails(models.Model):
     firstName = models.CharField(max_length=100)  # First name of employee
     lastName = models.CharField(max_length=100)  # Last name of employee
     group = models.CharField(max_length=100, null=True, blank=True)  # Group (optional)
-    department = models.CharField(max_length=100)  # Department of the employee
-    roleType = models.CharField(max_length=100)  # Type of role (e.g., Permanent, Contractual)
+    department = models.CharField(max_length=100,null=True, blank=True)  # Department of the employee
+    roleType = models.CharField(max_length=100,null=True, blank=True)  # Type of role (e.g., Permanent, Contractual)
     currentRole = models.CharField(max_length=100)  # Current role (designation) of the employee
     reportingManager = models.CharField(max_length=100)  # Reporting manager's name
     reasonForLeaving = models.TextField(null=True, blank=True)  # Reason for leaving (if applicable)
@@ -74,12 +74,12 @@ class EmpWorkDetails(models.Model):
 class EmpSocialSecurityDetails(models.Model):
     ssdId = models.AutoField(primary_key=True)
     wdId = models.ForeignKey(EmpWorkDetails, on_delete=models.CASCADE)
-    panNum = models.CharField(max_length=20)
-    uanNum = models.CharField(max_length=20)
-    aadharNum = models.CharField(max_length=20)
-    bankName = models.CharField(max_length=100)
-    ifscCode = models.CharField(max_length=20)
-    bankAccountNumber = models.CharField(max_length=50)
+    panNum = models.CharField(max_length=20,null=True, blank=True)
+    uanNum = models.CharField(max_length=20,null=True, blank=True)
+    aadharNum = models.CharField(max_length=20,null=True, blank=True)
+    bankName = models.CharField(max_length=100,null=True, blank=True)
+    ifscCode = models.CharField(max_length=20,null=True, blank=True)
+    bankAccountNumber = models.CharField(max_length=50,null=True, blank=True)
 
     def __str__(self):
         return f"Social Security Details for {self.wdId.empId}"
@@ -92,7 +92,7 @@ class EmpPersonalDetails(models.Model):
     personalEmailId = models.EmailField(null=True, blank=True)
     dob = models.DateField()
     gender = models.CharField(max_length=50)
-    educationalQualification = models.CharField(max_length=100)
+    educationalQualification = models.CharField(max_length=100, null=True, blank=True)
     maritalStatus = models.CharField(max_length=50)
     marriageDate = models.DateField(null=True, blank=True)
     currentAddress = models.TextField()

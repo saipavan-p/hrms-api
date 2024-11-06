@@ -10,9 +10,9 @@ class TimeSheet(models.Model):
     name = models.CharField(max_length=255)
     month = models.CharField(max_length=20)
     no_of_days = models.IntegerField()
-    attendance = models.IntegerField()
-    lop_days = models.IntegerField()
-    OT = models.IntegerField(default=0)
+    attendance = models.FloatField()
+    lop_days = models.FloatField()
+    OT = models.FloatField(default=0)
     allowance = models.IntegerField(default=0)
     deductions = models.IntegerField(default=0)
 
@@ -32,9 +32,9 @@ class PayCalculation(models.Model):
     name = models.CharField(max_length=255)
     month = models.CharField(max_length=20)
     no_of_days = models.IntegerField()
-    attendance = models.IntegerField()
-    lop_days = models.IntegerField()
-    OT = models.IntegerField(default=0)
+    attendance = models.FloatField()
+    lop_days = models.FloatField()
+    OT = models.FloatField(default=0)
     
 
     # Salary and calculation fields

@@ -93,12 +93,12 @@ WSGI_APPLICATION = 'hrms.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'hrms_data',  
-        'USER': 'saipavan',  
-        'PASSWORD': 'password',  
-        'HOST': 'localhost',  
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'HRIS4_Details',
+        'USER': 'suvarna',
+        'PASSWORD': 'suvarna',
+        'HOST': '127.0.0.1',
+        'PORT': '3306',
     }
 }
 
@@ -163,6 +163,13 @@ from rest_framework_simplejwt.settings import api_settings
 #     'USER_ID_FIELD': 'userId',  # Use 'userId' instead of 'id'
 #     'USER_ID_CLAIM': 'user_id',
 # }
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -172,9 +179,9 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
     'VERIFYING_KEY': None,
     'AUTH_HEADER_TYPES': ('Bearer',),
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    # 'USER_ID_FIELD': 'id',
+    # 'USER_ID_CLAIM': 'user_id',
+    # 'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 import os
 

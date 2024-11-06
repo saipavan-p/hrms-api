@@ -49,9 +49,10 @@
 #         return self.userName
 
 #new added roles
+# from company.models import CompanyDetails
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
-# from company.models import CompanyDetails
 
 class UserManager(BaseUserManager):
     def create_user(self, email, userName, password=None, **extra_fields):
