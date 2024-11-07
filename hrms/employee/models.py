@@ -11,9 +11,6 @@ class EmpWorkDetails(models.Model):
     # Foreign Key to CompanyDetails
     company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, related_name="employees",null=True, blank=True)
 
-    # # Foreign Key to EmployeeCompensation (Compensation structure that applies to this employee)
-    # compensation = models.ForeignKey(EmployeeCompensation, on_delete=models.CASCADE, related_name="employees")
-
     # Employee-specific fields
     empId = models.CharField(max_length=255, unique=True)  # Unique employee ID
     employmentStatus = models.CharField(max_length=100)  # Employment status (e.g., Active, Terminated)
