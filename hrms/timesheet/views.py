@@ -10,6 +10,189 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+import pandas as pd
+import re
+import calendar
+import os
+
+@csrf_exempt
+def upload_attendance_file(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        file = request.FILES['file']
+        file_path = default_storage.save(file.name, ContentFile(file.read()))
+        absolute_path = os.path.join(default_storage.location, file_path)
+
+        try:
+            # Load and process the CSV file
+            data = pd.read_csv(absolute_path, header=None)
+            data = data.dropna(how='all', axis=1)  # Drop empty columns
+            data.dropna(how='all', inplace=True)  # Drop empty rows
+
+            date_range_text = data.iloc[1, 1]
+            match = re.search(r"([A-Za-z]+)\s+\d{1,2}\s+(\d{4})", date_range_text)
+            if match:
+                month_name, year = match.groups()
+                formatted_month = f"{month_name} {year}"
+                month_number = list(calendar.month_abbr).index(month_name)
+                days_in_month = calendar.monthrange(int(year), month_number)[1]
+            else:
+                formatted_month = "Unknown"
+                days_in_month = 0
+
+            structured_data = []
+            current_department = None
+            current_empcode = None
+            current_empname = None
+
+            for i, row in data.iterrows():
+                row_data = row.dropna().values
+                if any("Department:" in str(cell) for cell in row_data):
+                    current_department = next((cell for cell in row_data if "Department:" not in str(cell)), None)
+                elif any("Emp. Code:" in str(cell) for cell in row_data):
+                    try:
+                        emp_code_index = next(idx for idx, cell in enumerate(row_data) if "Emp. Code:" in str(cell))
+                        emp_name_index = next(idx for idx, cell in enumerate(row_data) if "Emp. Name:" in str(cell))
+                        current_empcode = row_data[emp_code_index + 1]
+                        current_empname = row_data[emp_name_index + 1]
+                    except (IndexError, StopIteration):
+                        continue
+                elif any("Status" == str(cell) for cell in row_data) and current_empcode and current_empname:
+                    attendance = row_data[1:]
+                    structured_data.append({
+                        'Department': current_department,
+                        'Emp ID': current_empcode,
+                        'Name': current_empname,
+                        'attendance': attendance,
+                        'Month': formatted_month,
+                        'No. of Days': days_in_month
+                    })
+                    current_empcode = None
+                    current_empname = None
+
+            attendance_df = pd.DataFrame(structured_data)
+
+            def calculate_attendance_metrics(attendance_list):
+                present_days = list(attendance_list).count('P')
+                absent_days = list(attendance_list).count('A')
+                WO_days = list(attendance_list).count('WO')
+                WOP_days = list(attendance_list).count('WOP')
+                return present_days, absent_days, WO_days, WOP_days
+
+            if 'attendance' in attendance_df.columns:
+                attendance_df[['present_days', 'LOP Days', 'WO_days', 'WOP_days']] = attendance_df['attendance'].apply(
+                    lambda x: pd.Series(calculate_attendance_metrics(x))
+                )
+
+            attendance_df['S NO'] = range(1, len(attendance_df) + 1)
+            attendance_df['Attendance'] = attendance_df['present_days'] + attendance_df['WO_days'] + attendance_df['WOP_days']
+            attendance_summary = attendance_df[['S NO', 'Department', 'Emp ID', 'Name', 'Month', 'No. of Days', 'Attendance', 'LOP Days', 'present_days', 'WO_days', 'WOP_days']]
+
+            # Save the processed file to the media directory
+            output_file_name = 'attendance_summary.xlsx'
+            output_file_path = os.path.join(default_storage.location, output_file_name)
+            attendance_summary.to_excel(output_file_path, index=False)
+
+            # Generate a public URL for the processed file
+            public_file_url = f"{settings.MEDIA_URL}{output_file_name}"
+            full_url = request.build_absolute_uri(public_file_url)
+
+            return JsonResponse({'message': 'File processed successfully!', 'downloadUrl': full_url})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+# @csrf_exempt
+# def upload_attendance_file(request):
+#     if request.method == 'POST' and request.FILES.get('file'):
+#         file = request.FILES['file']
+#         file_path = default_storage.save(file.name, ContentFile(file.read()))
+#         absolute_path = os.path.join(default_storage.location, file_path)
+
+#         try:
+#             # Load the CSV file
+#             data = pd.read_csv(absolute_path, header=None)
+
+#             # Drop any completely empty columns and rows
+#             data = data.dropna(how='all', axis=1)
+#             data.dropna(how='all', inplace=True)
+
+#             date_range_text = data.iloc[1, 1]
+#             match = re.search(r"([A-Za-z]+)\s+\d{1,2}\s+(\d{4})", date_range_text)
+#             if match:
+#                 month_name, year = match.groups()
+#                 formatted_month = f"{month_name} {year}"
+#                 month_number = list(calendar.month_abbr).index(month_name)
+#                 days_in_month = calendar.monthrange(int(year), month_number)[1]
+#             else:
+#                 formatted_month = "Unknown"
+#                 days_in_month = 0
+
+#             # Initialize variables for structured data
+#             structured_data = []
+#             current_department = None
+#             current_empcode = None
+#             current_empname = None
+
+#             # Parse rows to capture department, employee code, name, and attendance data
+#             for i, row in data.iterrows():
+#                 row_data = row.dropna().values
+
+#                 if any("Department:" in str(cell) for cell in row_data):
+#                     current_department = next((cell for cell in row_data if "Department:" not in str(cell)), None)
+#                 elif any("Emp. Code:" in str(cell) for cell in row_data):
+#                     try:
+#                         emp_code_index = next(idx for idx, cell in enumerate(row_data) if "Emp. Code:" in str(cell))
+#                         emp_name_index = next(idx for idx, cell in enumerate(row_data) if "Emp. Name:" in str(cell))
+#                         current_empcode = row_data[emp_code_index + 1]
+#                         current_empname = row_data[emp_name_index + 1]
+#                     except (IndexError, StopIteration):
+#                         continue
+#                 elif any("Status" == str(cell) for cell in row_data) and current_empcode and current_empname:
+#                     attendance = row_data[1:]
+#                     structured_data.append({
+#                         'Department': current_department,
+#                         'Emp ID': current_empcode,
+#                         'Name': current_empname,
+#                         'attendance': attendance,
+#                         'Month': formatted_month,
+#                         'No. of Days': days_in_month
+#                     })
+#                     current_empcode = None
+#                     current_empname = None
+
+#             attendance_df = pd.DataFrame(structured_data)
+
+#             def calculate_attendance_metrics(attendance_list):
+#                 present_days = list(attendance_list).count('P')
+#                 absent_days = list(attendance_list).count('A')
+#                 WO_days = list(attendance_list).count('WO')
+#                 WOP_days = list(attendance_list).count('WOP')
+#                 return present_days, absent_days, WO_days, WOP_days
+
+#             if 'attendance' in attendance_df.columns:
+#                 attendance_df[['present_days', 'LOP Days', 'WO_days', 'WOP_days']] = attendance_df['attendance'].apply(
+#                     lambda x: pd.Series(calculate_attendance_metrics(x))
+#                 )
+
+#             attendance_df['S NO'] = range(1, len(attendance_df) + 1)
+#             attendance_df['Attendance'] = attendance_df['present_days'] + attendance_df['WO_days'] + attendance_df['WOP_days']
+#             attendance_summary = attendance_df[['S NO', 'Department', 'Emp ID', 'Name', 'Month', 'No. of Days', 'Attendance', 'LOP Days', 'present_days', 'WO_days', 'WOP_days']]
+
+#             # Save to Excel
+#             output_file_path = os.path.join(default_storage.location, 'attendance_summary.xlsx')
+#             attendance_summary.to_excel(output_file_path, index=False)
+
+#             return JsonResponse({'message': 'File processed successfully!', 'file_url': output_file_path})
+
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+#     return JsonResponse({'error': 'Invalid request'}, status=400)
+
 class TimesheetViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated] 
     def list(self, request, company_id, month):

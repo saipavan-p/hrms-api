@@ -62,3 +62,4 @@ class CustomEmpWorkDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmpWorkDetails
         fields = ['wdId', 'company', 'empId', 'firstName', 'lastName', 'roleType', 'salary_details']
+

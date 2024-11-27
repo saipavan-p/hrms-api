@@ -6,26 +6,25 @@ from dateutil.relativedelta import relativedelta
 
 # Employee Work Details
 class EmpWorkDetails(models.Model):
-    wdId = models.AutoField(primary_key=True)  # Primary key for the work details
+    wdId = models.AutoField(primary_key=True)  
 
     # Foreign Key to CompanyDetails
     company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE, related_name="employees",null=True, blank=True)
 
     # Employee-specific fields
-    empId = models.CharField(max_length=255, unique=True)  # Unique employee ID
+    empId = models.CharField(max_length=255, unique=True)  
     employmentStatus = models.CharField(max_length=100)  # Employment status (e.g., Active, Terminated)
-    companyEmailId = models.EmailField(null=True, blank=True)  # Employee's official email ID
-    dateOfJoining = models.DateField(null=True, blank=True)  # Date of joining
-    dateOfRelieving = models.DateField(null=True, blank=True)  # Date of relieving (if applicable)
-
-    firstName = models.CharField(max_length=100)  # First name of employee
-    lastName = models.CharField(max_length=100)  # Last name of employee
-    group = models.CharField(max_length=100, null=True, blank=True)  # Group (optional)
-    department = models.CharField(max_length=100,null=True, blank=True)  # Department of the employee
-    roleType = models.CharField(max_length=100,null=True, blank=True)  # Type of role (e.g., Permanent, Contractual)
-    currentRole = models.CharField(max_length=100)  # Current role (designation) of the employee
-    reportingManager = models.CharField(max_length=100)  # Reporting manager's name
-    reasonForLeaving = models.TextField(null=True, blank=True)  # Reason for leaving (if applicable)
+    companyEmailId = models.EmailField(null=True, blank=True)  
+    dateOfJoining = models.DateField(null=True, blank=True)  
+    dateOfRelieving = models.DateField(null=True, blank=True)  
+    firstName = models.CharField(max_length=100)  
+    lastName = models.CharField(max_length=100)  
+    group = models.CharField(max_length=100, null=True, blank=True)  
+    department = models.CharField(max_length=100,null=True, blank=True)  
+    roleType = models.CharField(max_length=100,null=True, blank=True) 
+    currentRole = models.CharField(max_length=100)  
+    reportingManager = models.CharField(max_length=100)  
+    reasonForLeaving = models.TextField(null=True, blank=True)  
 
     monthYearOfTermination = models.CharField(max_length=100, null=True, blank=True)
     totalExpInThisCompany = models.CharField(max_length=100, null=True, blank=True)
@@ -87,7 +86,7 @@ class EmpPersonalDetails(models.Model):
     pdId = models.AutoField(primary_key=True)
     wdId = models.ForeignKey(EmpWorkDetails, on_delete=models.CASCADE)
     personalEmailId = models.EmailField(null=True, blank=True)
-    dob = models.DateField()
+    dob = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=50)
     educationalQualification = models.CharField(max_length=100, null=True, blank=True)
     maritalStatus = models.CharField(max_length=50)
@@ -96,9 +95,9 @@ class EmpPersonalDetails(models.Model):
     permanentAddress = models.TextField()
     generalContact = models.TextField(null=True, blank=True)
     emergencyContact = models.TextField(null=True, blank=True)
-    relationship = models.CharField(max_length=100)
-    relationshipName = models.CharField(max_length=100)
-    bloodGroup = models.CharField(max_length=10)
+    relationship = models.CharField(max_length=100, null=True, blank=True)
+    relationshipName = models.CharField(max_length=100, null=True, blank=True)
+    bloodGroup = models.CharField(max_length=10, null=True, blank=True)
     shirtSize = models.CharField(max_length=10, null=True, blank=True)
     location = models.CharField(max_length=100, null=True, blank=True)
 

@@ -56,3 +56,23 @@ class PayCalculation(models.Model):
 
     def __str__(self):
         return f'{self.name} - {self.month}'
+
+
+
+# class Attendance(models.Model):
+#     aId = models.AutoField(primary_key=True)
+#     empId = models.ForeignKey(EmpWorkDetails, on_delete=models.CASCADE, to_field='empId',null=True,blank=True)  # FK to Employee.emp_id
+#     company = models.ForeignKey(CompanyDetails, on_delete=models.CASCADE,null=True,blank=True)  # FK to Company model
+#     department = models.CharField(max_length=255)
+#     # emp_id = models.CharField(max_length=50)
+#     name = models.CharField(max_length=255)
+#     month = models.CharField(max_length=20)  # Example: "Oct 2024"
+#     no_of_days = models.IntegerField()
+#     attendance = models.IntegerField()
+#     lop_days = models.IntegerField()
+#     present_days = models.IntegerField()
+#     wo_days = models.IntegerField()
+#     wop_days = models.IntegerField()
+    
+#     def __str__(self):
+#         return f"{self.emp_id} - {self.name} ({self.month})"

@@ -6,7 +6,7 @@ from .models import Login
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSerializer, LoginSerializer, CompanyStatusSerializer
 from company.models import CompanyDetails  
-from rest_framework_simplejwt.tokens import AccessToken  # Import SimpleJWT's AccessToken class
+from rest_framework_simplejwt.tokens import AccessToken  
 from datetime import timedelta
 
 class RegisterView(APIView):

@@ -148,10 +148,11 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
     @transaction.atomic
     def partial_update(self, request, pk=None):
         self.check_permissions(request)
-        # Use correct model name
+        
+        # Fetch the main work details instance
         work_instance = get_object_or_404(EmpWorkDetails, pk=pk)
 
-        # Extract and validate data
+        # Extract data from request
         company_data = request.data.get('work_details', {})
         personal_data = request.data.get('personal_details', {})
         social_security_data = request.data.get('social_security_details', {})
@@ -168,58 +169,99 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
 
         work_instance = work_serializer.save()
 
-        # Validate and update personal details
-        personal_instance = get_object_or_404(EmpPersonalDetails, wdId=work_instance)
-        personal_serializer = EmpPersonalDetailsSerializer(personal_instance, data=personal_data, partial=True)
-        if not personal_serializer.is_valid():
-            return Response({
-                "message": "Validation errors occurred.",
-                "personal_details_errors": personal_serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Initialize variables to track related instances
+        personal_instance = None
+        social_security_instance = None
+        insurance_instance = None
+        salary_instance = None
 
-        personal_instance = personal_serializer.save()
+        # Update personal details
+        if personal_data:
+            try:
+                personal_instance = EmpPersonalDetails.objects.get(wdId=work_instance)
+                personal_serializer = EmpPersonalDetailsSerializer(personal_instance, data=personal_data, partial=False)
+            except EmpPersonalDetails.DoesNotExist:
+                personal_data['wdId'] = work_instance.pk
+                personal_serializer = EmpPersonalDetailsSerializer(data=personal_data)
 
-        # Validate and update social security details
-        social_security_instance = get_object_or_404(EmpSocialSecurityDetails, wdId=work_instance)
-        social_security_serializer = EmpSocialSecurityDetailsSerializer(social_security_instance, data=social_security_data, partial=True)
-        if not social_security_serializer.is_valid():
-            return Response({
-                "message": "Validation errors occurred.",
-                "social_security_details_errors": social_security_serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+            if not personal_serializer.is_valid():
+                return Response({
+                    "message": "Validation errors occurred.",
+                    "personal_details_errors": personal_serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        social_security_instance = social_security_serializer.save()
+            personal_instance = personal_serializer.save()
 
-        # Validate and update insurance details
-        insurance_instance = get_object_or_404(EmpInsuranceDetails, wdId=work_instance)
-        insurance_serializer = EmpInsuranceDetailsSerializer(insurance_instance, data=insurance_data, partial=True)
-        if not insurance_serializer.is_valid():
-            return Response({
-                "message": "Validation errors occurred.",
-                "insurance_details_errors": insurance_serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Update social security details
+        if social_security_data:
+            try:
+                social_security_instance = EmpSocialSecurityDetails.objects.get(wdId=work_instance)
+                social_security_serializer = EmpSocialSecurityDetailsSerializer(social_security_instance, data=social_security_data, partial=False)
+            except EmpSocialSecurityDetails.DoesNotExist:
+                social_security_data['wdId'] = work_instance.pk
+                social_security_serializer = EmpSocialSecurityDetailsSerializer(data=social_security_data)
 
-        insurance_instance = insurance_serializer.save()
+            if not social_security_serializer.is_valid():
+                return Response({
+                    "message": "Validation errors occurred.",
+                    "social_security_details_errors": social_security_serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate and update salary details
-        salary_instance = get_object_or_404(EmpSalaryDetails, wdId=work_instance)
-        salary_serializer = EmpSalaryDetailsSerializer(salary_instance, data=salary_data, partial=True)
-        if not salary_serializer.is_valid():
-            return Response({
-                "message": "Validation errors occurred.",
-                "salary_details_errors": salary_serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+            social_security_instance = social_security_serializer.save()
 
-        salary_instance = salary_serializer.save()
+        # Update insurance details
+        if insurance_data:
+            try:
+                insurance_instance = EmpInsuranceDetails.objects.get(wdId=work_instance)
+                insurance_serializer = EmpInsuranceDetailsSerializer(insurance_instance, data=insurance_data, partial=False)
+            except EmpInsuranceDetails.DoesNotExist:
+                insurance_data['wdId'] = work_instance.pk
+                insurance_serializer = EmpInsuranceDetailsSerializer(data=insurance_data)
 
-        # Return updated data
-        return Response({
-            "work_details": work_serializer.data,
-            "social_security_details": social_security_serializer.data,
-            "personal_details": personal_serializer.data,
-            "insurance_details": insurance_serializer.data,
-            "salary_details": salary_serializer.data
-        }, status=status.HTTP_200_OK)
+            if not insurance_serializer.is_valid():
+                return Response({
+                    "message": "Validation errors occurred.",
+                    "insurance_details_errors": insurance_serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            insurance_instance = insurance_serializer.save()
+
+        # Update salary details
+        if salary_data:
+            try:
+                salary_instance = EmpSalaryDetails.objects.get(wdId=work_instance)
+                salary_serializer = EmpSalaryDetailsSerializer(salary_instance, data=salary_data, partial=False)
+            except EmpSalaryDetails.DoesNotExist:
+                salary_data['wdId'] = work_instance.pk
+                salary_serializer = EmpSalaryDetailsSerializer(data=salary_data)
+
+            if not salary_serializer.is_valid():
+                return Response({
+                    "message": "Validation errors occurred.",
+                    "salary_details_errors": salary_serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            salary_instance = salary_serializer.save()
+
+        # Fetch the entire data for the wdId
+        updated_work_instance = get_object_or_404(EmpWorkDetails, pk=work_instance.pk)
+        work_details_serializer = EmpWorkDetailsSerializer(updated_work_instance)
+
+        personal_instance = EmpPersonalDetails.objects.filter(wdId=work_instance).first()
+        social_security_instance = EmpSocialSecurityDetails.objects.filter(wdId=work_instance).first()
+        insurance_instance = EmpInsuranceDetails.objects.filter(wdId=work_instance).first()
+        salary_instance = EmpSalaryDetails.objects.filter(wdId=work_instance).first()
+
+        # Prepare the response with the updated data
+        response_data = {
+            "work_details": work_details_serializer.data,
+            "personal_details": EmpPersonalDetailsSerializer(personal_instance).data if personal_instance else {},
+            "social_security_details": EmpSocialSecurityDetailsSerializer(social_security_instance).data if social_security_instance else {},
+            "insurance_details": EmpInsuranceDetailsSerializer(insurance_instance).data if insurance_instance else {},
+            "salary_details": EmpSalaryDetailsSerializer(salary_instance).data if salary_instance else {}
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     permission_classes = [IsAuthenticated] 
 
@@ -327,3 +369,50 @@ class CombinedDetailsViewSet(viewsets.ViewSet):
         # Serialize the data
         serializer = CustomEmpWorkDetailsSerializer(work_instances, many=True)
         return Response({"custom_work_details": serializer.data}, status=status.HTTP_200_OK)
+
+
+    # permission_classes = [IsAuthenticated] 
+
+    # def retrieve(self, request, pk=None):
+    #     """
+    #     Retrieve details of a single employee based on their ID.
+    #     """
+    #     self.check_permissions(request)
+
+    #     # Get the work instance by primary key
+    #     work_instance = get_object_or_404(EmpWorkDetails, pk=pk)
+
+    #     # Serialize the work details
+    #     work_serializer = EmpWorkDetailsSerializer(work_instance)
+    #     work_data = work_serializer.data
+
+    #     # Retrieve related data
+    #     social_security_instance = EmpSocialSecurityDetails.objects.filter(wdId=work_instance).first()
+    #     personal_instance = EmpPersonalDetails.objects.filter(wdId=work_instance).first()
+    #     insurance_instance = EmpInsuranceDetails.objects.filter(wdId=work_instance).first()
+    #     salary_instance = EmpSalaryDetails.objects.filter(wdId=work_instance).first()
+
+    #     # Serialize related details if they exist
+    #     social_security_data = (
+    #         EmpSocialSecurityDetailsSerializer(social_security_instance).data if social_security_instance else {}
+    #     )
+    #     personal_data = (
+    #         EmpPersonalDetailsSerializer(personal_instance).data if personal_instance else {}
+    #     )
+    #     insurance_data = (
+    #         EmpInsuranceDetailsSerializer(insurance_instance).data if insurance_instance else {}
+    #     )
+    #     salary_data = (
+    #         EmpSalaryDetailsSerializer(salary_instance).data if salary_instance else {}
+    #     )
+
+    #     # Combine all details into one dictionary
+    #     combined_data = {
+    #         "work_details": work_data,
+    #         "social_security_details": social_security_data,
+    #         "personal_details": personal_data,
+    #         "insurance_details": insurance_data,
+    #         "salary_details": salary_data,
+    #     }
+
+    #     return Response(combined_data, status=status.HTTP_200_OK)
